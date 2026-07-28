@@ -47,17 +47,14 @@
   </script>
 
   <style>
-    /* Prevent text highlight on mobile */
     * { touch-action: manipulation; }
     #map { min-height: 280px; height: 100%; width: 100%; z-index: 1; }
-    .leaflet-routing-container { display: none !important; } /* Hide default routing box text */
+    .leaflet-routing-container { display: none !important; }
     
-    /* Scrollbar styling */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #16a34a; border-radius: 4px; }
 
-    /* Print styles */
     @media print {
       body * { visibility: hidden; }
       #invoice-modal, #invoice-modal * { visibility: visible; }
@@ -103,39 +100,55 @@
     <section class="lg:col-span-5 space-y-4">
       
       <!-- LOCATION INPUT CARD -->
-      <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200 relative">
         <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
           <h2 class="font-bold text-gray-800 text-base flex items-center">
             <i data-lucide="navigation" class="w-5 h-5 text-brand-600 mr-2"></i> Lộ Trình Di Chuyển
           </h2>
-          <button onclick="getCurrentLocation()" class="text-xs text-brand-600 hover:text-brand-800 font-semibold flex items-center bg-brand-50 px-2 py-1 rounded-md border border-brand-100">
-            <i data-lucide="crosshair" class="w-3.5 h-3.5 mr-1"></i> Định vị tôi
+          <button onclick="getCurrentLocation()" class="text-xs text-brand-600 hover:text-brand-800 font-semibold flex items-center bg-brand-50 px-2.5 py-1 rounded-md border border-brand-100 hover:bg-brand-100 transition">
+            <i data-lucide="crosshair" class="w-3.5 h-3.5 mr-1"></i> GPS Của Tôi
           </button>
         </div>
 
-        <div class="space-y-3 relative">
-          <!-- Start Point -->
-          <div>
-            <label class="text-xs font-bold text-gray-600 mb-1 block flex items-center">
-              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block mr-2"></span> Điểm Đi (Pickup)
+        <div class="space-y-4">
+          <!-- Start Point Input with AutoComplete Search -->
+          <div class="relative">
+            <label class="text-xs font-bold text-gray-600 mb-1 block flex items-center justify-between">
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block mr-2"></span> Điểm Đi (Pickup)</span>
+              <span id="start-search-loading" class="text-[10px] text-brand-600 font-normal hidden flex items-center"><i data-lucide="loader-2" class="w-3 h-3 animate-spin mr-1"></i> Đang tìm...</span>
             </label>
-            <div class="relative">
-              <input type="text" id="start-address" placeholder="Nhập điểm đi hoặc chọn trên bản đồ..." 
-                     class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
-              <i data-lucide="map-pin" class="w-4 h-4 text-blue-500 absolute left-3 top-2.5"></i>
+            <div class="relative flex items-center">
+              <input type="text" id="start-address" placeholder="Gõ điểm đi để tìm kiếm thực tế..." 
+                     oninput="handleAddressInput('start')"
+                     autocomplete="off"
+                     class="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+              <i data-lucide="map-pin" class="w-4 h-4 text-blue-500 absolute left-3"></i>
+              <button onclick="clearAddressInput('start')" class="absolute right-2.5 text-gray-400 hover:text-gray-600 hidden" id="start-clear-btn">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
             </div>
+            <!-- Search Results Dropdown Start -->
+            <div id="start-results" class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-30 max-h-60 overflow-y-auto hidden divide-y divide-gray-100 text-xs"></div>
           </div>
 
-          <!-- Destination Point -->
-          <div>
-            <label class="text-xs font-bold text-gray-600 mb-1 block flex items-center">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block mr-2"></span> Điểm Đến (Destination)
+          <!-- Destination Point Input with AutoComplete Search -->
+          <div class="relative">
+            <label class="text-xs font-bold text-gray-600 mb-1 block flex items-center justify-between">
+              <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block mr-2"></span> Điểm Đến (Destination)</span>
+              <span id="end-search-loading" class="text-[10px] text-brand-600 font-normal hidden flex items-center"><i data-lucide="loader-2" class="w-3 h-3 animate-spin mr-1"></i> Đang tìm...</span>
             </label>
-            <div class="relative">
-              <input type="text" id="end-address" placeholder="Nhập điểm đến..." 
-                     class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
-              <i data-lucide="map-pin-off" class="w-4 h-4 text-red-500 absolute left-3 top-2.5"></i>
+            <div class="relative flex items-center">
+              <input type="text" id="end-address" placeholder="Nhập điểm đến bạn thích..." 
+                     oninput="handleAddressInput('end')"
+                     autocomplete="off"
+                     class="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+              <i data-lucide="map-pin-off" class="w-4 h-4 text-red-500 absolute left-3"></i>
+              <button onclick="clearAddressInput('end')" class="absolute right-2.5 text-gray-400 hover:text-gray-600 hidden" id="end-clear-btn">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
             </div>
+            <!-- Search Results Dropdown End -->
+            <div id="end-results" class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-30 max-h-60 overflow-y-auto hidden divide-y divide-gray-100 text-xs"></div>
           </div>
 
           <!-- Waiting time input -->
@@ -222,7 +235,7 @@
             </div>
           </div>
 
-          <!-- Round Trip Discount Switcher (Only visible in Round Trip) -->
+          <!-- Round Trip Discount Switcher -->
           <div id="round-trip-discount-container" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
@@ -547,8 +560,8 @@
 
     // --- STATE MANAGEMENT ---
     let selectedVehicle = 'bike';
-    let tripType = 'one_way'; // 'one_way' | 'round_trip'
-    let discountEnabled = false; // toggle for round_trip
+    let tripType = 'one_way'; 
+    let discountEnabled = false; 
     let currentDistanceKm = 0;
     let currentDurationMin = 0;
     let computedFare = 0;
@@ -556,8 +569,11 @@
 
     // Map & Route Control
     let map, routingControl, startMarker, endMarker;
-    let startCoords = [10.7769, 106.7009]; // Default: TP.HCM center
+    let startCoords = [10.7769, 106.7009]; // TP.HCM Default
     let endCoords = [10.8231, 106.6297];
+
+    // Debounce timer for address search
+    let searchTimeout = null;
 
     // --- INITIALIZATION ---
     window.onload = function() {
@@ -566,7 +582,17 @@
       loadHistoryFromStorage();
       setupPWAInstaller();
       
-      // Auto trigger initial geolocation
+      // Close search results dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('#start-address') && !e.target.closest('#start-results')) {
+          document.getElementById('start-results').classList.add('hidden');
+        }
+        if (!e.target.closest('#end-address') && !e.target.closest('#end-results')) {
+          document.getElementById('end-results').classList.add('hidden');
+        }
+      });
+
+      // Auto request current geolocation
       getCurrentLocation();
     };
 
@@ -586,7 +612,7 @@
       endMarker = L.marker(endCoords, { draggable: true, title: "Điểm Đến" }).addTo(map)
         .bindPopup("<b>Điểm đến</b>");
 
-      // Event listeners for dragging markers
+      // Event listeners for dragging markers directly on map
       startMarker.on('dragend', function(e) {
         startCoords = [e.target.getLatLng().lat, e.target.getLatLng().lng];
         reverseGeocode(startCoords, 'start-address');
@@ -622,16 +648,15 @@
             startMarker.setLatLng(startCoords);
             reverseGeocode(startCoords, 'start-address');
             
-            // Set end point slightly offset if default
             endCoords = [startCoords[0] + 0.03, startCoords[1] + 0.03];
             endMarker.setLatLng(endCoords);
             reverseGeocode(endCoords, 'end-address');
 
             updateRoute();
-            document.getElementById('map-status').innerText = "Đã cập nhật vị trí GPS chính xác";
+            document.getElementById('map-status').innerText = "Đã định vị GPS chính xác";
           },
           function(error) {
-            document.getElementById('map-status').innerText = "Dùng vị trí mặc định (GPS bị từ chối)";
+            document.getElementById('map-status').innerText = "Dùng vị trí mặc định (GPS chưa bật)";
             updateRoute();
           },
           { enableHighAccuracy: true, timeout: 10000 }
@@ -639,17 +664,100 @@
       }
     }
 
-    // Reverse Geocode using OpenStreetMap Nominatim
+    // Reverse Geocode using Nominatim API
     function reverseGeocode(coords, inputId) {
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords[0]}&lon=${coords[1]}`)
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords[0]}&lon=${coords[1]}&accept-language=vi`)
         .then(res => res.json())
         .then(data => {
           if (data && data.display_name) {
-            document.getElementById(inputId).value = data.display_name.split(',').slice(0, 3).join(',');
+            document.getElementById(inputId).value = data.display_name;
+            document.getElementById(`${inputId.split('-')[0]}-clear-btn`).classList.remove('hidden');
           }
         }).catch(() => {
           document.getElementById(inputId).value = `${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`;
         });
+    }
+
+    // --- REAL SEARCH & AUTOCOMPLETE FUNCTIONS ---
+    function handleAddressInput(type) {
+      const input = document.getElementById(`${type}-address`);
+      const clearBtn = document.getElementById(`${type}-clear-btn`);
+      const resultsContainer = document.getElementById(`${type}-results`);
+      const loadingSpinner = document.getElementById(`${type}-search-loading`);
+      const query = input.value.trim();
+
+      if (query.length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+        resultsContainer.classList.add('hidden');
+        return;
+      }
+
+      if (query.length < 2) return;
+
+      // Debounce to prevent flooding API
+      clearTimeout(searchTimeout);
+      loadingSpinner.classList.remove('hidden');
+
+      searchTimeout = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=7&accept-language=vi`)
+          .then(res => res.json())
+          .then(data => {
+            loadingSpinner.classList.add('hidden');
+            resultsContainer.innerHTML = '';
+
+            if (!data || data.length === 0) {
+              resultsContainer.innerHTML = `<div class="p-3 text-gray-400 text-center">Không tìm thấy địa điểm phù hợp</div>`;
+            } else {
+              data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "p-2.5 hover:bg-brand-50 cursor-pointer transition flex items-start space-x-2";
+                div.innerHTML = `
+                  <i data-lucide="map-pin" class="w-4 h-4 text-brand-600 mt-0.5 flex-shrink-0"></i>
+                  <div>
+                    <div class="font-bold text-gray-800 leading-tight">${item.display_name.split(',')[0]}</div>
+                    <div class="text-[10px] text-gray-500 line-clamp-1">${item.display_name}</div>
+                  </div>
+                `;
+                div.onclick = function() {
+                  selectSearchResult(type, item.lat, item.lon, item.display_name);
+                };
+                resultsContainer.appendChild(div);
+              });
+              lucide.createIcons();
+            }
+            resultsContainer.classList.remove('hidden');
+          })
+          .catch(() => {
+            loadingSpinner.classList.add('hidden');
+          });
+      }, 400);
+    }
+
+    function selectSearchResult(type, lat, lon, name) {
+      const coords = [parseFloat(lat), parseFloat(lon)];
+      document.getElementById(`${type}-address`).value = name;
+      document.getElementById(`${type}-results`).classList.add('hidden');
+
+      if (type === 'start') {
+        startCoords = coords;
+        startMarker.setLatLng(startCoords);
+        map.setView(startCoords, 14);
+      } else {
+        endCoords = coords;
+        endMarker.setLatLng(endCoords);
+        map.setView(endCoords, 14);
+      }
+
+      updateRoute();
+    }
+
+    function clearAddressInput(type) {
+      document.getElementById(`${type}-address`).value = '';
+      document.getElementById(`${type}-clear-btn`).classList.add('hidden');
+      document.getElementById(`${type}-results`).classList.add('hidden');
+      document.getElementById(`${type}-address`).focus();
     }
 
     // Update Route & Calculate Road Distance
@@ -669,9 +777,9 @@
           serviceUrl: 'https://router.project-osrm.org/route/v1'
         }),
         lineOptions: {
-          styles: [{ color: '#16a34a', opacity: 0.8, weight: 6 }]
+          styles: [{ color: '#16a34a', opacity: 0.85, weight: 6 }]
         },
-        createMarker: function() { return null; }, // Hide default routing markers
+        createMarker: function() { return null; },
         addWaypoints: false
       }).addTo(map);
 
@@ -679,7 +787,6 @@
         const routes = e.routes;
         const summary = routes[0].summary;
         
-        // Road Distance in km and duration in minutes
         currentDistanceKm = parseFloat((summary.totalDistance / 1000).toFixed(1));
         currentDurationMin = Math.round(summary.totalTime / 60);
 
@@ -692,7 +799,6 @@
       });
 
       routingControl.on('routingerror', function() {
-        // Fallback straight line distance calculation (Haversine formula)
         const d = haversineDistance(startCoords, endCoords);
         currentDistanceKm = parseFloat(d.toFixed(1));
         currentDurationMin = Math.round(currentDistanceKm * 2.5);
@@ -712,7 +818,7 @@
                 Math.cos(coords1[0] * Math.PI / 180) * Math.cos(coords2[0] * Math.PI / 180) *
                 Math.sin(dLon/2) * Math.sin(dLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c * 1.3; // 1.3 route coefficient
+      return R * c * 1.3;
     }
 
     // --- THUẬT TOÁN TÍNH GIÁ CƯỚC CHÍNH XÁC 100% ---
@@ -727,7 +833,6 @@
       } else if (distance <= 20) {
         oneWayFare = p.flagfall + (distance - 2) * p.rate_3_20;
       } else {
-        // Trên 20km: 2km đầu + 18km kế tiếp (3-20) + phần còn lại từ km 21+
         oneWayFare = p.flagfall + (18 * p.rate_3_20) + (distance - 20) * p.rate_21_plus;
       }
 
@@ -739,20 +844,17 @@
       let totalFare = 0;
       let discountPercent = 0;
 
-      // 3. Xử lý Kiểu hành trình & Khứ hồi giảm giá
+      // 3. Kiểu hành trình & Giảm giá
       if (tripType === 'one_way') {
         totalFare = oneWayFare + waitCost;
         discountPercent = 0;
       } else {
-        // HÀNH TRÌNH KHỨ HỒI
         const doubleOneWay = oneWayFare * 2;
 
         if (!discountEnabled) {
-          // TẮT giảm giá khứ hồi -> Tính gấp đôi 2x
           totalFare = doubleOneWay + waitCost;
           discountPercent = 0;
         } else {
-          // BẬT giảm giá khứ hồi -> Tính theo bảng chiết khấu
           const isLoyal = document.getElementById('loyal-customer-toggle').checked;
 
           if (isLoyal) {
@@ -770,20 +872,16 @@
         }
       }
 
-      // Làm tròn thành tiền
       computedFare = Math.round(totalFare);
 
-      // Render UI UI updates
       document.getElementById('total-fare').innerText = formatVND(computedFare);
       document.getElementById('discount-val').innerText = discountPercent > 0 ? `-${discountPercent}%` : `0%`;
     }
 
-    // Format currency VND
     function formatVND(amount) {
       return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     }
 
-    // Vehicle Select Event
     function selectVehicle(type) {
       selectedVehicle = type;
       document.querySelectorAll('.vehicle-btn').forEach(btn => {
@@ -797,7 +895,6 @@
       calculateFare();
     }
 
-    // Set Trip Type (1 chiều / Khứ hồi)
     function setTripType(type) {
       tripType = type;
       const btnOne = document.getElementById('btn-one-way');
@@ -820,7 +917,6 @@
       calculateFare();
     }
 
-    // Toggle Round Trip Discount
     function toggleDiscount() {
       discountEnabled = document.getElementById('discount-toggle').checked;
       const statusText = document.getElementById('discount-status-text');
@@ -849,7 +945,6 @@
       const startAddr = document.getElementById('start-address').value || "Vị trí hiện tại";
       const endAddr = document.getElementById('end-address').value || "Điểm đến chọn trên bản đồ";
 
-      // Generate UNIQUE invoice code
       const invCode = "PSM-" + Math.floor(100000 + Math.random() * 900000);
       const invDate = new Date().toLocaleString('vi-VN');
 
@@ -868,11 +963,9 @@
       document.getElementById('inv-start-addr').innerText = startAddr;
       document.getElementById('inv-end-addr').innerText = endAddr;
 
-      // Populate Table Breakdown
       const tbody = document.getElementById('inv-breakdown-rows');
       tbody.innerHTML = '';
 
-      // Base fare calculation breakdown row
       let oneWayFare = 0;
       if (currentDistanceKm <= 2) {
         oneWayFare = p.flagfall;
@@ -926,7 +1019,6 @@
 
       document.getElementById('inv-final-total').innerText = formatVND(computedFare);
 
-      // Generate Anti-fake QR code
       const qrContainer = document.getElementById("qrcode");
       qrContainer.innerHTML = "";
       new QRCode(qrContainer, {
@@ -937,7 +1029,6 @@
 
       document.getElementById('anti-fake-hash').innerText = `HASH: ${invCode}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-      // Auto save trip to history
       saveTripToHistory({
         code: invCode,
         date: invDate,
@@ -948,7 +1039,6 @@
         end: endAddr
       });
 
-      // Show Modal
       document.getElementById('invoice-modal').classList.remove('hidden');
     }
 
@@ -956,10 +1046,8 @@
       document.getElementById('invoice-modal').classList.add('hidden');
     }
 
-    // Toggle Invoice Fullscreen
     function toggleInvoiceFullscreen() {
       const container = document.getElementById('invoice-card-container');
-      const icon = document.getElementById('fs-icon');
       const text = document.getElementById('fs-text');
 
       if (container.classList.contains('max-w-2xl')) {
@@ -975,7 +1063,7 @@
       }
     }
 
-    // EXPORT INVOICE FUNCTIONS (Print, PDF, PNG, CSV, DOCX)
+    // EXPORT INVOICE FUNCTIONS
     function exportInvoice(type) {
       const element = document.getElementById('printable-invoice');
 
@@ -1040,7 +1128,7 @@
     // --- TRIP HISTORY LOCAL STORAGE ---
     function saveTripToHistory(trip) {
       tripHistory.unshift(trip);
-      if (tripHistory.length > 30) tripHistory.pop(); // Keep last 30
+      if (tripHistory.length > 30) tripHistory.pop();
       localStorage.setItem('phuongsm_history', JSON.stringify(tripHistory));
     }
 
