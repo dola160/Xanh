@@ -1,889 +1,1115 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhuongSM - Dịch Vụ Đặt Xe Công Nghệ Cao Cấp</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PhuongSM - Ứng Dụng Đặt Xe Chuyên Nghiệp</title>
+
+  <!-- PWA Manifest & App Info -->
+  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlBodW9uZ1NNIC0gwJDhuqd0IFhlIiwKICAic2hvcnRfbmFtZSI6ICJQaHVvbmc1TSIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjhmOTZhIiwKICAidGhlbWVfY29sb3IiOiAiIzE2YTM0YSIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImh0dHBzOi8vaS5pYmIuY28vNFoxN0M4TVQvZmlsZS0wMDAwMDAwMDczNzgwMjA3ODNhMTk3MjNjN2U2YTQ0Mi5wbmciLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdCn0=">
+  <meta name="theme-color" content="#16a34a">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Leaflet CSS & JS for Real Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet Routing Machine -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+  <!-- Libraries for Invoice Exporting -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Prevent text highlight on mobile */
+    * { touch-action: manipulation; }
+    #map { min-height: 280px; height: 100%; width: 100%; z-index: 1; }
+    .leaflet-routing-container { display: none !important; } /* Hide default routing box text */
     
-    <!-- PWA Web Manifest Dynamic Inject -->
-    <link rel="manifest" id="manifest-placeholder">
-    <meta name="theme-color" content="#059669">
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #16a34a; border-radius: 4px; }
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Leaflet Maps CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- QRCode JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-    <!-- html2canvas for Exporting Invoice Image -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f3f4f6;
-        }
-        #map {
-            height: 320px;
-            width: 100%;
-            border-radius: 1rem;
-            z-index: 10;
-        }
-        .full-brightness-overlay {
-            background-color: #ffffff !important;
-            filter: brightness(100%) contrast(100%);
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #10b981;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-    </style>
+    /* Print styles */
+    @media print {
+      body * { visibility: hidden; }
+      #invoice-modal, #invoice-modal * { visibility: visible; }
+      #invoice-modal { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+      .no-print { display: none !important; }
+    }
+  </style>
 </head>
-<body class="text-gray-800 pb-12">
+<body class="bg-gray-100 font-sans text-gray-800 antialiased min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
 
-    <!-- Header Navigation -->
-    <header class="bg-emerald-600 text-white sticky top-0 z-50 shadow-md">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="bg-white text-emerald-600 p-2 rounded-xl shadow font-extrabold text-xl">
-                    <i class="fa-solid fa-car-side"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-black tracking-wide leading-none">PhuongSM</h1>
-                    <p class="text-xs text-emerald-100 mt-0.5">Đặt Xe Công Nghệ Nhanh & An Toàn</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center space-x-2">
-                <!-- Notification Toggle Button -->
-                <button id="btn-notify" onclick="toggleNotifications()" class="p-2 bg-emerald-700 hover:bg-emerald-800 rounded-lg text-sm transition flex items-center gap-1" title="Bật/Tắt Thông báo">
-                    <i class="fa-solid fa-bell" id="icon-notify"></i>
-                </button>
-
-                <!-- Install PWA Button -->
-                <button id="btn-install-pwa" onclick="installPWA()" class="hidden bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center gap-1">
-                    <i class="fa-solid fa-download"></i> Cài đặt App
-                </button>
-            </div>
+  <!-- TOP HEADER / NAVBAR -->
+  <header class="bg-white shadow-md sticky top-0 z-50 border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <!-- Brand Logo & Title -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+        <img src="https://i.ibb.co/4Z17C8MT/file-000000007378820783a19723c7e6a442.png" alt="PhuongSM Logo" class="h-10 w-10 object-contain rounded-lg shadow-sm border border-brand-100">
+        <div>
+          <h1 class="font-extrabold text-xl text-brand-700 tracking-tight flex items-center">
+            PhuongSM <span class="ml-1.5 text-xs bg-brand-100 text-brand-800 px-2 py-0.5 rounded-full font-semibold">Pro</span>
+          </h1>
+          <p class="text-[10px] text-gray-500 font-medium">Đặt xe công nghệ - Đúng giá 100%</p>
         </div>
-    </header>
+      </div>
 
-    <!-- Main Container -->
-    <main class="max-w-4xl mx-auto px-4 pt-4 space-y-5">
-
-        <!-- Booking Form Section -->
-        <section class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-route text-emerald-600"></i> Lộ Trình & Đặt Xe
-            </h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <!-- Pickup Location -->
-                <div class="relative">
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Điểm đón (Vị trí hiện tại)</label>
-                    <div class="flex items-center border border-gray-300 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-emerald-500 bg-gray-50">
-                        <i class="fa-solid fa-location-dot text-emerald-600 mr-2"></i>
-                        <input type="text" id="pickup-location" class="w-full bg-transparent text-sm font-medium focus:outline-none" placeholder="Đang xác định vị trí GPS...">
-                        <button onclick="getCurrentLocation()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md font-semibold hover:bg-emerald-200 transition">
-                            <i class="fa-solid fa-crosshairs"></i> GPS
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Destination Location -->
-                <div class="relative">
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Điểm đến</label>
-                    <div class="flex items-center border border-gray-300 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-emerald-500 bg-white">
-                        <i class="fa-solid fa-location-arrow text-red-500 mr-2"></i>
-                        <input type="text" id="destination-location" class="w-full bg-transparent text-sm font-medium focus:outline-none" placeholder="Nhập địa chỉ hoặc tên thành phố..." onchange="calculateRouteAndFare()">
-                        <button onclick="searchDestination()" class="text-xs bg-emerald-600 text-white px-3 py-1 rounded-md font-semibold hover:bg-emerald-700 transition">
-                            <i class="fa-solid fa-search"></i> Tim
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Distance and Trip Options -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 bg-emerald-50/60 p-3 rounded-xl border border-emerald-100">
-                <!-- Trip Type Select -->
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Loại tuyến đường</label>
-                    <select id="trip-type" onchange="calculateFare()" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm font-semibold focus:ring-emerald-500">
-                        <option value="one-way">Chuyến 1 chiều</option>
-                        <option value="round-trip">Chuyến Khứ hồi</option>
-                    </select>
-                </div>
-
-                <!-- Round trip discount toggle -->
-                <div id="discount-toggle-container" class="opacity-50 pointer-events-none">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Khứ hồi giảm giá</label>
-                    <div class="flex items-center justify-between bg-white border border-gray-300 rounded-lg p-1.5 px-3">
-                        <span id="discount-label" class="text-xs font-bold text-gray-600">2x Khứ hồi</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="roundtrip-discount" class="sr-only peer" onchange="toggleDiscountState()">
-                            <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Wait Time Hours -->
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Thời gian chờ (Giờ)</label>
-                    <input type="number" id="wait-hours" min="0" value="0" onchange="calculateFare()" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm font-semibold focus:ring-emerald-500" placeholder="0">
-                </div>
-            </div>
-
-            <!-- Vehicle Selection Grid -->
-            <label class="block text-xs font-semibold text-gray-500 mb-2">Chọn Loại Xe PhuongSM</label>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" id="vehicle-selector">
-                <!-- Vehicle Options populated via JS -->
-            </div>
-
-            <!-- Distance and Time summary bar -->
-            <div class="flex flex-wrap items-center justify-between bg-gray-900 text-white rounded-xl p-4 gap-2">
-                <div class="flex items-center space-x-4">
-                    <div>
-                        <p class="text-xs text-gray-400">Quãng đường</p>
-                        <p class="text-lg font-bold text-emerald-400" id="display-distance">0 km</p>
-                    </div>
-                    <div class="h-8 w-px bg-gray-700"></div>
-                    <div>
-                        <p class="text-xs text-gray-400">Thời gian đi</p>
-                        <p class="text-lg font-bold text-yellow-400" id="display-duration">0 phút</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-gray-400">Tổng Cước Phí</p>
-                    <p class="text-2xl font-extrabold text-white" id="display-total-fare">0 ₫</p>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="mt-4 flex flex-wrap gap-2">
-                <button onclick="confirmBooking()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-circle-check"></i> Xác Nhận Đặt Xe & Tạo Hóa Đơn
-                </button>
-            </div>
-        </section>
-
-        <!-- Interactive Map -->
-        <section class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
-            <div class="flex justify-between items-center mb-2 px-1">
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider"><i class="fa-solid fa-map-location-dot"></i> Bản đồ tuyến đường di chuyển</span>
-                <span id="map-status" class="text-xs text-emerald-600 font-semibold">Đã tải GPS</span>
-            </div>
-            <div id="map"></div>
-        </section>
-
-        <!-- Pricing Rates Reference Table -->
-        <section class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-table-list text-emerald-600"></i> Bảng Giá Cước & Ưu Đãi Khứ Hồi PhuongSM
-            </h3>
-            
-            <div class="overflow-x-auto mb-4">
-                <table class="w-full text-xs text-left text-gray-600 border border-gray-200 rounded-lg">
-                    <thead class="bg-gray-100 text-gray-700 font-bold">
-                        <tr>
-                            <th class="p-2 border-b">Loại xe</th>
-                            <th class="p-2 border-b">Mở cửa (2 km đầu)</th>
-                            <th class="p-2 border-b">Km 3 – 20</th>
-                            <th class="p-2 border-b">Từ Km 21</th>
-                            <th class="p-2 border-b">Phí chờ</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr>
-                            <td class="p-2 font-semibold text-gray-900">Xe máy</td>
-                            <td class="p-2">10.000₫</td>
-                            <td class="p-2">3.500₫/km</td>
-                            <td class="p-2">3.000₫/km</td>
-                            <td class="p-2">20.000₫/giờ</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 font-semibold text-gray-900">Ô tô 4 chỗ</td>
-                            <td class="p-2">20.000₫</td>
-                            <td class="p-2">8.000₫/km</td>
-                            <td class="p-2">7.000₫/km</td>
-                            <td class="p-2">40.000₫/giờ</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 font-semibold text-gray-900">Ô tô 7 chỗ</td>
-                            <td class="p-2">25.000₫</td>
-                            <td class="p-2">10.000₫/km</td>
-                            <td class="p-2">9.000₫/km</td>
-                            <td class="p-2">50.000₫/giờ</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 font-semibold text-gray-900">Ô tô 16 chỗ</td>
-                            <td class="p-2">40.000₫</td>
-                            <td class="p-2">15.000₫/km</td>
-                            <td class="p-2">13.000₫/km</td>
-                            <td class="p-2">70.000₫/giờ</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-xs text-left text-gray-600 border border-gray-200 rounded-lg">
-                    <thead class="bg-emerald-50 text-emerald-800 font-bold">
-                        <tr>
-                            <th class="p-2 border-b">Mức giảm Khứ hồi</th>
-                            <th class="p-2 border-b">Áp dụng cho trường hợp</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr><td class="p-2 font-bold text-emerald-600">Giảm 10%</td><td class="p-2">Quãng đường ngắn (dưới 20 km)</td></tr>
-                        <tr><td class="p-2 font-bold text-emerald-600">Giảm 15%</td><td class="p-2">Quãng đường trung bình (20 – 50 km)</td></tr>
-                        <tr><td class="p-2 font-bold text-emerald-600">Giảm 20%</td><td class="p-2">Quãng đường dài (trên 50 km)</td></tr>
-                        <tr><td class="p-2 font-bold text-emerald-600">Giảm 25%</td><td class="p-2">Khách hàng thân thiết / Hợp đồng dài hạn</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- History Section -->
-        <section class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> Lịch Sử Đặt Chuyến
-                </h3>
-                <button onclick="clearHistory()" class="text-xs text-red-500 hover:underline">Xóa lịch sử</button>
-            </div>
-            <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto">
-                <!-- History Items Populated by JS -->
-                <p class="text-xs text-gray-400 italic">Chưa có lịch sử chuyến đi nào được lưu.</p>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- INVOICE MODAL (Canva Design Style & Non-crammed typography) -->
-    <div id="invoice-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 overflow-y-auto">
-        <div id="invoice-container" class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl relative my-auto border-4 border-emerald-500">
-            
-            <!-- Controls Bar inside Modal (Expand / Exit Screen Icons) -->
-            <div class="flex justify-between items-center pb-4 mb-4 border-b border-gray-200">
-                <div class="flex items-center space-x-2">
-                    <button onclick="toggleFullScreenInvoice()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 transition" title="Toàn màn hình / Thu nhỏ">
-                        <i class="fa-solid fa-expand text-lg" id="btn-fullscreen-icon"></i>
-                    </button>
-                    <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Hóa Đơn Chuyến Đi PhuongSM</span>
-                </div>
-                <button onclick="closeInvoiceModal()" class="p-2 bg-red-50 hover:bg-red-100 rounded-xl text-red-600 transition" title="Đóng">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <!-- Canva-Designed Invoice Content -->
-            <div id="printable-invoice" class="bg-gradient-to-b from-emerald-50/50 to-white p-6 rounded-2xl border border-emerald-100 space-y-5">
-                
-                <!-- Invoice Header -->
-                <div class="flex justify-between items-start">
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <div class="bg-emerald-600 text-white p-2 rounded-lg font-black text-lg">
-                                <i class="fa-solid fa-car-side"></i>
-                            </div>
-                            <h2 class="text-2xl font-black text-gray-900 tracking-tight">PhuongSM</h2>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Dịch vụ vận chuyển công nghệ cao</p>
-                        <p class="text-xs text-gray-400">Chống giả mạo • Xác thực mã QR</p>
-                    </div>
-                    <div class="text-right">
-                        <span class="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-1 rounded-full uppercase">Đã Thanh Toán</span>
-                        <p class="text-xs text-gray-500 mt-2 font-mono" id="inv-code">Mã HĐ: #PSM-0000</p>
-                        <p class="text-xs text-gray-400" id="inv-date">Ngày: --/--/----</p>
-                    </div>
-                </div>
-
-                <!-- Trip Details List -->
-                <div class="bg-white p-4 rounded-xl border border-gray-100 space-y-3 text-sm">
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                        <span class="text-gray-500 text-xs">Loại xe:</span>
-                        <span class="font-bold text-gray-900" id="inv-vehicle">--</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                        <span class="text-gray-500 text-xs">Hình thức di chuyển:</span>
-                        <span class="font-bold text-gray-900" id="inv-triptype">--</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                        <span class="text-gray-500 text-xs">Điểm đón:</span>
-                        <span class="font-semibold text-gray-800 text-right max-w-[240px] truncate" id="inv-pickup">--</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                        <span class="text-gray-500 text-xs">Điểm đến:</span>
-                        <span class="font-semibold text-gray-800 text-right max-w-[240px] truncate" id="inv-dest">--</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                        <span class="text-gray-500 text-xs">Quãng đường & Thời gian:</span>
-                        <span class="font-bold text-emerald-700" id="inv-distance-time">0 km | 0 phút</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                        <span class="text-gray-500 text-xs">Phí chờ bổ sung:</span>
-                        <span class="font-medium text-gray-700" id="inv-waitfee">0 ₫</span>
-                    </div>
-                    <div id="inv-discount-row" class="flex justify-between items-center border-b border-gray-100 pb-2 text-emerald-600 hidden">
-                        <span class="text-xs font-semibold">Ưu đãi khứ hồi:</span>
-                        <span class="font-bold" id="inv-discount-val">-0%</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-1">
-                        <span class="text-base font-extrabold text-gray-900">Tổng cộng:</span>
-                        <span class="text-2xl font-black text-emerald-600" id="inv-total">0 ₫</span>
-                    </div>
-                </div>
-
-                <!-- Footer with QR and Security Stamp -->
-                <div class="flex items-center justify-between pt-2">
-                    <div class="flex items-center space-x-3">
-                        <button onclick="openQRModal()" class="group bg-white p-2 rounded-xl border border-gray-200 shadow-sm hover:border-emerald-500 transition flex items-center gap-2">
-                            <i class="fa-solid fa-qrcode text-2xl text-emerald-600 group-hover:scale-110 transition"></i>
-                            <div class="text-left">
-                                <p class="text-[10px] font-bold text-gray-800 leading-tight">Mở Mã QR Mã Hóa</p>
-                                <p class="text-[9px] text-emerald-600">Full Sáng Tự Động</p>
-                            </div>
-                        </button>
-                    </div>
-
-                    <div class="text-right">
-                        <div class="inline-block border-2 border-emerald-600 text-emerald-700 font-extrabold text-[10px] px-2 py-0.5 rounded rotate-[-3deg]">
-                            VERIFIED BY PHUONGSM
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Export Actions Toolbar -->
-            <div class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                <button onclick="shareTrip()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-share-nodes"></i> Chia Sẻ Thật
-                </button>
-                <button onclick="downloadInvoiceImage()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-image"></i> In Ảnh Hóa Đơn
-                </button>
-                <button onclick="printQuickInvoice()" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-print"></i> In Nhanh
-                </button>
-                <button onclick="exportDocx()" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-file-word"></i> Xuất DOCX
-                </button>
-                <button onclick="exportSheetCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-file-excel"></i> Trang Tính (CSV)
-                </button>
-                <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-file-pdf"></i> Xuất PDF
-                </button>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- FULL BRIGHTNESS QR CODE MODAL -->
-    <div id="qr-modal" class="fixed inset-0 bg-white z-50 hidden flex flex-col items-center justify-center p-4 text-center">
-        <!-- Full brightness watermark indicator -->
-        <div class="absolute top-4 right-4 bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-            <i class="fa-solid fa-sun text-yellow-600"></i> Đã Tự Động Full Sáng Màn Hình
-        </div>
-
-        <h3 class="text-2xl font-black text-gray-900 mb-2">Mã QR Đường Link Hóa Đơn</h3>
-        <p class="text-sm text-gray-600 mb-6 max-w-xs">Sử dụng camera hoặc máy quét để xác nhận thông tin chuyến đi PhuongSM</p>
-
-        <!-- QR Display Container -->
-        <div class="p-4 bg-white border-4 border-emerald-500 rounded-3xl shadow-2xl mb-6">
-            <div id="qrcode-box" class="flex justify-center"></div>
-        </div>
-
-        <p id="qr-link-url" class="text-xs text-blue-600 underline font-mono break-all max-w-sm mb-6"></p>
-
-        <button onclick="closeQRModal()" class="bg-gray-900 hover:bg-black text-white font-bold px-8 py-3 rounded-2xl shadow-lg transition flex items-center gap-2">
-            <i class="fa-solid fa-arrow-left"></i> Thu Gọn / Trở Về
+      <!-- Action Buttons Header -->
+      <div class="flex items-center space-x-2">
+        <button id="pwa-install-btn" class="hidden bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>Cài ứng dụng</span>
         </button>
+        <button onclick="toggleHistoryModal(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
+          <i data-lucide="history" class="w-4 h-4 text-brand-600"></i>
+          <span class="hidden sm:inline">Lịch sử</span>
+        </button>
+      </div>
     </div>
+  </header>
 
-    <!-- JAVASCRIPT APP LOGIC -->
-    <script>
-        // --- 1. CONFIGURATION & PRICING DATA ---
-        const VEHICLES = [
-            { id: 'bike', name: 'Xe máy', icon: 'fa-motorcycle', base: 10000, rate3to20: 3500, rate21: 3000, waitRate: 20000 },
-            { id: 'car4', name: 'Ô tô 4 chỗ', icon: 'fa-car', base: 20000, rate3to20: 8000, rate21: 7000, waitRate: 40000 },
-            { id: 'car7', name: 'Ô tô 7 chỗ', icon: 'fa-van-shuttle', base: 25000, rate3to20: 10000, rate21: 9000, waitRate: 50000 },
-            { id: 'van16', name: 'Ô tô 16 chỗ', icon: 'fa-bus', base: 40000, rate3to20: 15000, rate21: 13000, waitRate: 70000 }
-        ];
+  <!-- MAIN APP CONTAINER -->
+  <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow">
+    
+    <!-- LEFT PANEL: BOOKING FORM & PRICING OPTIONS (5 Cols) -->
+    <section class="lg:col-span-5 space-y-4">
+      
+      <!-- LOCATION INPUT CARD -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200">
+        <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+          <h2 class="font-bold text-gray-800 text-base flex items-center">
+            <i data-lucide="navigation" class="w-5 h-5 text-brand-600 mr-2"></i> Lộ Trình Di Chuyển
+          </h2>
+          <button onclick="getCurrentLocation()" class="text-xs text-brand-600 hover:text-brand-800 font-semibold flex items-center bg-brand-50 px-2 py-1 rounded-md border border-brand-100">
+            <i data-lucide="crosshair" class="w-3.5 h-3.5 mr-1"></i> Định vị tôi
+          </button>
+        </div>
 
-        let selectedVehicle = VEHICLES[1]; // Default: Car 4 seats
-        let currentDistanceKm = 12.5; // Default mockup distance in KM
-        let currentDurationMin = 25; // Default mockup duration in minutes
-        let map, pickupMarker, destMarker, routePolyline;
-        let pwaDeferredPrompt = null;
-        let currentTripData = null;
-        let wakeLock = null;
+        <div class="space-y-3 relative">
+          <!-- Start Point -->
+          <div>
+            <label class="text-xs font-bold text-gray-600 mb-1 block flex items-center">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block mr-2"></span> Điểm Đi (Pickup)
+            </label>
+            <div class="relative">
+              <input type="text" id="start-address" placeholder="Nhập điểm đi hoặc chọn trên bản đồ..." 
+                     class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+              <i data-lucide="map-pin" class="w-4 h-4 text-blue-500 absolute left-3 top-2.5"></i>
+            </div>
+          </div>
 
-        // Coordinates Defaults (Ho Chi Minh City Center)
-        let pickupCoords = { lat: 10.7769, lng: 106.7009 };
-        let destCoords = { lat: 10.8231, lng: 106.6297 };
+          <!-- Destination Point -->
+          <div>
+            <label class="text-xs font-bold text-gray-600 mb-1 block flex items-center">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block mr-2"></span> Điểm Đến (Destination)
+            </label>
+            <div class="relative">
+              <input type="text" id="end-address" placeholder="Nhập điểm đến..." 
+                     class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+              <i data-lucide="map-pin-off" class="w-4 h-4 text-red-500 absolute left-3 top-2.5"></i>
+            </div>
+          </div>
 
-        // --- 2. INITIALIZATION ---
-        window.addEventListener('load', () => {
-            setupDynamicPWA();
-            initMap();
-            renderVehicleSelector();
-            getCurrentLocation();
-            loadHistory();
-            calculateFare();
+          <!-- Waiting time input -->
+          <div>
+            <label class="text-xs font-semibold text-gray-600 mb-1 block flex items-center justify-between">
+              <span>Thời gian chờ / Phụ phí (Giờ)</span>
+              <span id="wait-cost-preview" class="text-xs font-bold text-brand-700">0 ₫</span>
+            </label>
+            <div class="flex items-center space-x-2">
+              <input type="number" id="wait-hours" min="0" max="24" step="0.5" value="0" onchange="calculateFare()"
+                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+              <span class="text-xs text-gray-500 font-medium">Giờ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VEHICLE & TRIP TYPE SELECTOR -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+        
+        <!-- Vehicle Selection Grid -->
+        <div>
+          <label class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 block">Chọn Loại Phương Tiện</label>
+          <div class="grid grid-cols-2 gap-2" id="vehicle-selector">
+            <!-- Xe máy -->
+            <button type="button" onclick="selectVehicle('bike')" id="v-bike" class="vehicle-btn p-3 border-2 border-brand-600 bg-brand-50 rounded-xl text-left flex flex-col justify-between transition relative">
+              <div class="flex items-center justify-between w-full">
+                <i data-lucide="bike" class="w-6 h-6 text-brand-600"></i>
+                <span class="text-[10px] font-bold bg-white text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">2 Bánh</span>
+              </div>
+              <div class="mt-2">
+                <div class="font-bold text-sm text-gray-800">Xe Máy</div>
+                <div class="text-[11px] text-gray-500">2km đầu: 10.000₫</div>
+              </div>
+            </button>
+
+            <!-- 4 chỗ -->
+            <button type="button" onclick="selectVehicle('car4')" id="v-car4" class="vehicle-btn p-3 border-2 border-gray-200 hover:border-brand-300 rounded-xl text-left flex flex-col justify-between transition relative">
+              <div class="flex items-center justify-between w-full">
+                <i data-lucide="car" class="w-6 h-6 text-gray-600"></i>
+                <span class="text-[10px] font-bold bg-white text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">4 Chỗ</span>
+              </div>
+              <div class="mt-2">
+                <div class="font-bold text-sm text-gray-800">Ô tô 4 chỗ</div>
+                <div class="text-[11px] text-gray-500">2km đầu: 20.000₫</div>
+              </div>
+            </button>
+
+            <!-- 7 chỗ -->
+            <button type="button" onclick="selectVehicle('car7')" id="v-car7" class="vehicle-btn p-3 border-2 border-gray-200 hover:border-brand-300 rounded-xl text-left flex flex-col justify-between transition relative">
+              <div class="flex items-center justify-between w-full">
+                <i data-lucide="truck" class="w-6 h-6 text-gray-600"></i>
+                <span class="text-[10px] font-bold bg-white text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">7 Chỗ</span>
+              </div>
+              <div class="mt-2">
+                <div class="font-bold text-sm text-gray-800">Ô tô 7 chỗ</div>
+                <div class="text-[11px] text-gray-500">2km đầu: 25.000₫</div>
+              </div>
+            </button>
+
+            <!-- 16 chỗ -->
+            <button type="button" onclick="selectVehicle('car16')" id="v-car16" class="vehicle-btn p-3 border-2 border-gray-200 hover:border-brand-300 rounded-xl text-left flex flex-col justify-between transition relative">
+              <div class="flex items-center justify-between w-full">
+                <i data-lucide="bus" class="w-6 h-6 text-gray-600"></i>
+                <span class="text-[10px] font-bold bg-white text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">16 Chỗ</span>
+              </div>
+              <div class="mt-2">
+                <div class="font-bold text-sm text-gray-800">Ô tô 16 chỗ</div>
+                <div class="text-[11px] text-gray-500">2km đầu: 40.000₫</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Trip Type & Round Trip Discount Toggle -->
+        <div class="pt-2 border-t border-gray-100 space-y-3">
+          
+          <!-- Route Type (1 chiều / Khứ hồi) -->
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-gray-700 uppercase">Hành Trình</span>
+            <div class="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+              <button onclick="setTripType('one_way')" id="btn-one-way" class="px-3 py-1 rounded-md text-xs font-bold bg-white text-brand-700 shadow-sm transition">1 Chiều</button>
+              <button onclick="setTripType('round_trip')" id="btn-round-trip" class="px-3 py-1 rounded-md text-xs font-bold text-gray-600 hover:text-gray-900 transition">Khứ Hồi</button>
+            </div>
+          </div>
+
+          <!-- Round Trip Discount Switcher (Only visible in Round Trip) -->
+          <div id="round-trip-discount-container" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="percent" class="w-4 h-4 text-amber-600"></i>
+                <div>
+                  <div class="text-xs font-bold text-amber-900">Khứ hồi giảm giá</div>
+                  <div id="discount-status-text" class="text-[11px] font-semibold text-amber-700">2x Khứ hồi</div>
+                </div>
+              </div>
+              <!-- Toggle Switch -->
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="discount-toggle" onchange="toggleDiscount()" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+              </label>
+            </div>
+
+            <!-- Discount Rates Table Info -->
+            <div id="discount-info-box" class="mt-2 text-[10px] text-amber-800 border-t border-amber-200/60 pt-2 grid grid-cols-2 gap-1">
+              <span>• &lt; 20 km: <b>Giảm 10%</b></span>
+              <span>• 20-50 km: <b>Giảm 15%</b></span>
+              <span>• &gt; 50 km: <b>Giảm 20%</b></span>
+              <span>• Thân thiết/HĐ: <b>Giảm 25%</b></span>
+            </div>
+          </div>
+
+          <!-- Loyal Customer Discount Special Option -->
+          <div id="loyal-option-container" class="hidden flex items-center justify-between pt-1">
+            <span class="text-xs text-gray-600 font-medium">Khách hàng thân thiết / Hợp đồng dài hạn:</span>
+            <input type="checkbox" id="loyal-customer-toggle" onchange="calculateFare()" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500 h-4 w-4">
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: MAP & FARE SUMMARY (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col space-y-4">
+      
+      <!-- MAP CONTAINER -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-2 overflow-hidden flex-grow min-h-[300px] flex flex-col">
+        <div class="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 mb-2">
+          <span class="text-xs font-bold text-gray-700 flex items-center">
+            <i data-lucide="map" class="w-4 h-4 text-brand-600 mr-1.5"></i> Bản Đồ Lộ Trình LEO Maps
+          </span>
+          <span id="map-status" class="text-[11px] font-medium text-gray-500">Đang khởi tạo bản đồ...</span>
+        </div>
+        <div id="map" class="rounded-xl overflow-hidden flex-grow shadow-inner border border-gray-100"></div>
+      </div>
+
+      <!-- FARE CALCULATION RESULT CARD -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-brand-200 bg-gradient-to-br from-white via-brand-50/20 to-brand-100/30">
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 text-center">
+          <!-- Quãng đường -->
+          <div class="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm">
+            <div class="text-[11px] text-gray-500 font-medium">Tổng quãng đường</div>
+            <div id="distance-val" class="text-base sm:text-lg font-extrabold text-gray-800">0.0 km</div>
+          </div>
+          <!-- Thời gian -->
+          <div class="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm">
+            <div class="text-[11px] text-gray-500 font-medium">Thời gian dự kiến</div>
+            <div id="duration-val" class="text-base sm:text-lg font-extrabold text-gray-800">0 phút</div>
+          </div>
+          <!-- Mức giảm áp dụng -->
+          <div class="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm col-span-2 sm:col-span-1">
+            <div class="text-[11px] text-gray-500 font-medium">Ưu đãi áp dụng</div>
+            <div id="discount-val" class="text-base sm:text-lg font-extrabold text-amber-600">0%</div>
+          </div>
+        </div>
+
+        <!-- Total Cost Row -->
+        <div class="flex items-center justify-between border-t border-brand-200 pt-3">
+          <div>
+            <div class="text-xs text-gray-500 font-medium">TỔNG CƯỚC CHUYẾN ĐI</div>
+            <div class="text-[11px] text-gray-400">Đã bao gồm thuế & phí đường bộ</div>
+          </div>
+          <div class="text-right">
+            <div id="total-fare" class="text-2xl sm:text-3xl font-black text-brand-700 tracking-tight">0 ₫</div>
+          </div>
+        </div>
+
+        <!-- Action Button: Open Invoice -->
+        <div class="mt-4 flex space-x-2">
+          <button onclick="bookingAction()" class="flex-grow bg-brand-600 hover:bg-brand-700 text-white py-3 px-4 rounded-xl font-bold text-sm shadow-lg shadow-brand-600/30 transition flex items-center justify-center space-x-2 active:scale-[0.98]">
+            <i data-lucide="receipt" class="w-5 h-5"></i>
+            <span>XÁC NHẬN ĐẶT XE & XUẤT HÓA ĐƠN</span>
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-gray-200 py-3 mt-6 text-center text-xs text-gray-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+      <div class="flex items-center space-x-2">
+        <img src="https://i.ibb.co/4Z17C8MT/file-000000007378820783a19723c7e6a442.png" class="w-5 h-5 object-contain">
+        <span class="font-semibold text-gray-700">PhuongSM Ride Booking App</span>
+      </div>
+      <div>Dữ liệu tính toán chính xác 100% • Tự động lưu trữ offline</div>
+    </div>
+  </footer>
+
+  <!-- MODAL 1: CANVA-STYLE INVOICE MODAL -->
+  <div id="invoice-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    
+    <div id="invoice-card-container" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-gray-100 flex flex-col max-h-[92vh] transition-all duration-300">
+      
+      <!-- Modal Header Action Toolbar (No Print) -->
+      <div class="no-print p-3 sm:p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2 rounded-t-2xl">
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-gray-800 text-sm sm:text-base flex items-center">
+            <i data-lucide="file-check" class="w-5 h-5 text-brand-600 mr-1.5"></i> Hóa Đơn Điện Tử
+          </span>
+        </div>
+        <div class="flex items-center space-x-1.5 sm:space-x-2">
+          <!-- Toggle Fullscreen Button -->
+          <button onclick="toggleInvoiceFullscreen()" title="Mở rộng / Thu nhỏ" class="p-2 hover:bg-gray-200 rounded-lg text-gray-600 transition flex items-center text-xs font-medium">
+            <i id="fs-icon" data-lucide="maximize" class="w-4 h-4"></i>
+            <span id="fs-text" class="ml-1 hidden sm:inline">Toàn màn hình</span>
+          </button>
+          <button onclick="closeInvoiceModal()" class="p-2 hover:bg-red-100 text-red-600 rounded-lg transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- INVOICE CONTENT BODY (PRINTABLE / CANVA DESIGN) -->
+      <div id="printable-invoice" class="p-5 sm:p-8 overflow-y-auto space-y-6 bg-white text-gray-800 relative">
+        
+        <!-- Watermark Anti-fake Background -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] select-none">
+          <img src="https://i.ibb.co/4Z17C8MT/file-000000007378820783a19723c7e6a442.png" class="w-96 h-96 object-contain">
+        </div>
+
+        <!-- Invoice Top Info -->
+        <div class="flex justify-between items-start border-b-2 border-brand-600 pb-4">
+          <div class="flex items-center space-x-3">
+            <img src="https://i.ibb.co/4Z17C8MT/file-000000007378820783a19723c7e6a442.png" class="h-14 w-14 object-contain rounded-xl shadow-sm border border-brand-200">
+            <div>
+              <h2 class="text-2xl font-black text-brand-700 tracking-tight">PhuongSM</h2>
+              <p class="text-xs text-gray-500 font-semibold">Dịch vụ vận tải & Đặt xe công nghệ</p>
+              <p class="text-[10px] text-gray-400">Hotline: 1900-PHUONG-SM | Website: phuongsm.vn</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="bg-brand-100 text-brand-800 text-xs font-extrabold px-3 py-1 rounded-full border border-brand-200 inline-block mb-1">
+              XÁC NHẬN THANH TOÁN
+            </span>
+            <div id="inv-code" class="text-xs font-mono font-bold text-gray-600">HD-000000</div>
+            <div id="inv-date" class="text-[11px] text-gray-500">Ngày: --/--/----</div>
+          </div>
+        </div>
+
+        <!-- Customer & Trip Details Grid -->
+        <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs">
+          <div>
+            <div class="text-gray-400 font-bold uppercase tracking-wider text-[10px]">THÔNG TIN HÀNH TRÌNH</div>
+            <div class="mt-1 space-y-1">
+              <div><span class="font-semibold text-gray-600">Loại xe:</span> <span id="inv-vehicle" class="font-bold text-gray-900">--</span></div>
+              <div><span class="font-semibold text-gray-600">Kiểu chuyến:</span> <span id="inv-type" class="font-bold text-gray-900">--</span></div>
+              <div><span class="font-semibold text-gray-600">Chế độ giảm giá:</span> <span id="inv-discount-mode" class="font-bold text-brand-700">--</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="text-gray-400 font-bold uppercase tracking-wider text-[10px]">THÔNG SỐ VẬN HÀNH</div>
+            <div class="mt-1 space-y-1">
+              <div><span class="font-semibold text-gray-600">Quãng đường 1 chiều:</span> <span id="inv-distance" class="font-bold text-gray-900">0 km</span></div>
+              <div><span class="font-semibold text-gray-600">Thời gian di chuyển:</span> <span id="inv-duration" class="font-bold text-gray-900">0 phút</span></div>
+              <div><span class="font-semibold text-gray-600">Thời gian chờ:</span> <span id="inv-wait" class="font-bold text-gray-900">0 giờ</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Address Line -->
+        <div class="space-y-2 border-l-2 border-brand-500 pl-3 py-1 text-xs">
+          <div>
+            <span class="text-blue-600 font-bold">Điểm đi:</span> <span id="inv-start-addr" class="text-gray-800 font-medium">--</span>
+          </div>
+          <div>
+            <span class="text-red-600 font-bold">Điểm đến:</span> <span id="inv-end-addr" class="text-gray-800 font-medium">--</span>
+          </div>
+        </div>
+
+        <!-- Fare Breakdown Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="bg-brand-600 text-white">
+                <th class="p-2.5 rounded-l-lg">HẠNG MỤC TÍNH PHÍ</th>
+                <th class="p-2.5 text-center">ĐƠN GIÁ / CÁCH TÍNH</th>
+                <th class="p-2.5 text-right rounded-r-lg">THÀNH TIỀN</th>
+              </tr>
+            </thead>
+            <tbody id="inv-breakdown-rows" class="divide-y divide-gray-200">
+              <!-- JS Populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Total Breakdown Summary -->
+        <div class="bg-brand-50/60 p-4 rounded-xl border border-brand-200 flex justify-between items-center">
+          <div>
+            <div class="text-xs font-bold text-gray-700">TỔNG CỘNG CƯỚC XE</div>
+            <div class="text-[10px] text-gray-500">Đã trừ ưu đãi khứ hồi (nếu có)</div>
+          </div>
+          <div id="inv-final-total" class="text-2xl font-black text-brand-700">0 ₫</div>
+        </div>
+
+        <!-- Anti-fake Stamp & QR Code Footer -->
+        <div class="pt-4 border-t border-gray-200 flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-3">
+            <div id="qrcode" class="border p-1 bg-white rounded shadow-sm"></div>
+            <div>
+              <div class="font-bold text-brand-800 flex items-center">
+                <i data-lucide="shield-check" class="w-4 h-4 mr-1 text-brand-600"></i> BẢO MẬT CHÍNH HÃNG
+              </div>
+              <div class="text-[10px] text-gray-500">Mã xác thực kỹ thuật số PhuongSM</div>
+              <div id="anti-fake-hash" class="text-[9px] font-mono text-gray-400">HASH: E9A8-883F-992A</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-bold text-gray-700">ĐẠI DIỆN VẬN TẢI</div>
+            <div class="text-[10px] text-gray-400 mt-6">PhuongSM Digital Stamp</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- EXPORT ACTIONS TOOLBAR (No Print) -->
+      <div class="no-print p-4 bg-gray-50 border-t border-gray-200 rounded-b-2xl flex flex-wrap gap-2 justify-end">
+        <button onclick="exportInvoice('print')" class="bg-gray-800 hover:bg-black text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1 transition">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>In nhanh</span>
+        </button>
+        <button onclick="exportInvoice('pdf')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1 transition">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          <span>Xuất PDF</span>
+        </button>
+        <button onclick="exportInvoice('png')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1 transition">
+          <i data-lucide="image" class="w-4 h-4"></i>
+          <span>Xuất Ảnh</span>
+        </button>
+        <button onclick="exportInvoice('csv')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1 transition">
+          <i data-lucide="sheet" class="w-4 h-4"></i>
+          <span>Xuất Excel/CSV</span>
+        </button>
+        <button onclick="exportInvoice('doc')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1 transition">
+          <i data-lucide="file" class="w-4 h-4"></i>
+          <span>Xuất Docx</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL 2: TRIP HISTORY MODAL -->
+  <div id="history-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-gray-100 flex flex-col max-h-[85vh]">
+      <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="font-bold text-gray-800 text-base flex items-center">
+          <i data-lucide="history" class="w-5 h-5 text-brand-600 mr-2"></i> Lịch Sử Chuyến Đi Đã Lưu
+        </h3>
+        <button onclick="toggleHistoryModal(false)" class="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="history-list-container" class="p-4 overflow-y-auto space-y-3 flex-grow">
+        <!-- JS Inserted History -->
+      </div>
+
+      <div class="p-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center rounded-b-2xl">
+        <button onclick="clearHistory()" class="text-xs text-red-600 hover:text-red-800 font-bold flex items-center">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5 mr-1"></i> Xóa toàn bộ lịch sử
+        </button>
+        <button onclick="toggleHistoryModal(false)" class="px-4 py-1.5 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT LOGIC -->
+  <script>
+    // --- BẢNG GIÁ QUY ĐỊNH CỐ ĐỊNH (100% THEO YÊU CẦU) ---
+    const PRICING_TABLE = {
+      bike: {
+        name: "Xe máy",
+        flagfall: 10000,    // 2 km đầu
+        rate_3_20: 3500,    // km 3 - 20
+        rate_21_plus: 3000, // km 21+
+        wait_fee: 20000     // /giờ
+      },
+      car4: {
+        name: "Ô tô 4 chỗ",
+        flagfall: 20000,
+        rate_3_20: 8000,
+        rate_21_plus: 7000,
+        wait_fee: 40000
+      },
+      car7: {
+        name: "Ô tô 7 chỗ",
+        flagfall: 25000,
+        rate_3_20: 10000,
+        rate_21_plus: 9000,
+        wait_fee: 50000
+      },
+      car16: {
+        name: "Ô tô 16 chỗ",
+        flagfall: 40000,
+        rate_3_20: 15000,
+        rate_21_plus: 13000,
+        wait_fee: 70000
+      }
+    };
+
+    // --- STATE MANAGEMENT ---
+    let selectedVehicle = 'bike';
+    let tripType = 'one_way'; // 'one_way' | 'round_trip'
+    let discountEnabled = false; // toggle for round_trip
+    let currentDistanceKm = 0;
+    let currentDurationMin = 0;
+    let computedFare = 0;
+    let tripHistory = [];
+
+    // Map & Route Control
+    let map, routingControl, startMarker, endMarker;
+    let startCoords = [10.7769, 106.7009]; // Default: TP.HCM center
+    let endCoords = [10.8231, 106.6297];
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+      lucide.createIcons();
+      initMap();
+      loadHistoryFromStorage();
+      setupPWAInstaller();
+      
+      // Auto trigger initial geolocation
+      getCurrentLocation();
+    };
+
+    // Initialize Leaflet Map
+    function initMap() {
+      document.getElementById('map-status').innerText = "Đang tải bản đồ...";
+      map = L.map('map').setView(startCoords, 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Create draggable markers
+      startMarker = L.marker(startCoords, { draggable: true, title: "Điểm Đi" }).addTo(map)
+        .bindPopup("<b>Điểm đi</b>").openPopup();
+      
+      endMarker = L.marker(endCoords, { draggable: true, title: "Điểm Đến" }).addTo(map)
+        .bindPopup("<b>Điểm đến</b>");
+
+      // Event listeners for dragging markers
+      startMarker.on('dragend', function(e) {
+        startCoords = [e.target.getLatLng().lat, e.target.getLatLng().lng];
+        reverseGeocode(startCoords, 'start-address');
+        updateRoute();
+      });
+
+      endMarker.on('dragend', function(e) {
+        endCoords = [e.target.getLatLng().lat, e.target.getLatLng().lng];
+        reverseGeocode(endCoords, 'end-address');
+        updateRoute();
+      });
+
+      // Map click to set destination
+      map.on('click', function(e) {
+        endCoords = [e.latlng.lat, e.latlng.lng];
+        endMarker.setLatLng(e.latlng);
+        reverseGeocode(endCoords, 'end-address');
+        updateRoute();
+      });
+
+      document.getElementById('map-status').innerText = "Bản đồ sẵn sàng";
+      updateRoute();
+    }
+
+    // Geolocation API - Request Exact Position
+    function getCurrentLocation() {
+      if ("geolocation" in navigator) {
+        document.getElementById('map-status').innerText = "Đang xác định GPS...";
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            startCoords = [position.coords.latitude, position.coords.longitude];
+            map.setView(startCoords, 14);
+            startMarker.setLatLng(startCoords);
+            reverseGeocode(startCoords, 'start-address');
+            
+            // Set end point slightly offset if default
+            endCoords = [startCoords[0] + 0.03, startCoords[1] + 0.03];
+            endMarker.setLatLng(endCoords);
+            reverseGeocode(endCoords, 'end-address');
+
+            updateRoute();
+            document.getElementById('map-status').innerText = "Đã cập nhật vị trí GPS chính xác";
+          },
+          function(error) {
+            document.getElementById('map-status').innerText = "Dùng vị trí mặc định (GPS bị từ chối)";
+            updateRoute();
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      }
+    }
+
+    // Reverse Geocode using OpenStreetMap Nominatim
+    function reverseGeocode(coords, inputId) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords[0]}&lon=${coords[1]}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.display_name) {
+            document.getElementById(inputId).value = data.display_name.split(',').slice(0, 3).join(',');
+          }
+        }).catch(() => {
+          document.getElementById(inputId).value = `${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`;
         });
+    }
 
-        // --- 3. DYNAMIC PWA GENERATION (ALLOWS RE-INSTALLATION ANY TIME) ---
-        function setupDynamicPWA() {
-            const manifest = {
-                name: "PhuongSM Đặt Xe Công Nghệ",
-                short_name: "PhuongSM",
-                start_url: window.location.href,
-                display: "standalone",
-                background_color: "#ffffff",
-                theme_color: "#059669",
-                icons: [
-                    {
-                        src: "https://cdn-icons-png.flaticon.com/512/3202/3202926.png",
-                        sizes: "512x512",
-                        type: "image/png"
-                    }
-                ]
-            };
-            const stringManifest = JSON.stringify(manifest);
-            const blob = new Blob([stringManifest], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(blob);
-            document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
+    // Update Route & Calculate Road Distance
+    function updateRoute() {
+      if (!map) return;
 
-            // Capture PWA Installation Prompt
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                pwaDeferredPrompt = e;
-                document.getElementById('btn-install-pwa').classList.remove('hidden');
-            });
+      if (routingControl) {
+        map.removeControl(routingControl);
+      }
+
+      routingControl = L.Routing.control({
+        waypoints: [
+          L.latLng(startCoords[0], startCoords[1]),
+          L.latLng(endCoords[0], endCoords[1])
+        ],
+        router: L.Routing.osrmv1({
+          serviceUrl: 'https://router.project-osrm.org/route/v1'
+        }),
+        lineOptions: {
+          styles: [{ color: '#16a34a', opacity: 0.8, weight: 6 }]
+        },
+        createMarker: function() { return null; }, // Hide default routing markers
+        addWaypoints: false
+      }).addTo(map);
+
+      routingControl.on('routesfound', function(e) {
+        const routes = e.routes;
+        const summary = routes[0].summary;
+        
+        // Road Distance in km and duration in minutes
+        currentDistanceKm = parseFloat((summary.totalDistance / 1000).toFixed(1));
+        currentDurationMin = Math.round(summary.totalTime / 60);
+
+        if (currentDistanceKm <= 0) currentDistanceKm = 1.0;
+
+        document.getElementById('distance-val').innerText = `${currentDistanceKm} km`;
+        document.getElementById('duration-val').innerText = `${currentDurationMin} phút`;
+
+        calculateFare();
+      });
+
+      routingControl.on('routingerror', function() {
+        // Fallback straight line distance calculation (Haversine formula)
+        const d = haversineDistance(startCoords, endCoords);
+        currentDistanceKm = parseFloat(d.toFixed(1));
+        currentDurationMin = Math.round(currentDistanceKm * 2.5);
+
+        document.getElementById('distance-val').innerText = `${currentDistanceKm} km`;
+        document.getElementById('duration-val').innerText = `${currentDurationMin} phút`;
+        calculateFare();
+      });
+    }
+
+    // Haversine fallback distance
+    function haversineDistance(coords1, coords2) {
+      const R = 6371;
+      const dLat = (coords2[0] - coords1[0]) * Math.PI / 180;
+      const dLon = (coords2[1] - coords1[1]) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(coords1[0] * Math.PI / 180) * Math.cos(coords2[0] * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c * 1.3; // 1.3 route coefficient
+    }
+
+    // --- THUẬT TOÁN TÍNH GIÁ CƯỚC CHÍNH XÁC 100% ---
+    function calculateFare() {
+      const p = PRICING_TABLE[selectedVehicle];
+      let distance = currentDistanceKm;
+      let oneWayFare = 0;
+
+      // 1. Tính giá 1 chiều theo từng bậc cước
+      if (distance <= 2) {
+        oneWayFare = p.flagfall;
+      } else if (distance <= 20) {
+        oneWayFare = p.flagfall + (distance - 2) * p.rate_3_20;
+      } else {
+        // Trên 20km: 2km đầu + 18km kế tiếp (3-20) + phần còn lại từ km 21+
+        oneWayFare = p.flagfall + (18 * p.rate_3_20) + (distance - 20) * p.rate_21_plus;
+      }
+
+      // 2. Phí chờ
+      const waitHours = parseFloat(document.getElementById('wait-hours').value) || 0;
+      const waitCost = waitHours * p.wait_fee;
+      document.getElementById('wait-cost-preview').innerText = formatVND(waitCost);
+
+      let totalFare = 0;
+      let discountPercent = 0;
+
+      // 3. Xử lý Kiểu hành trình & Khứ hồi giảm giá
+      if (tripType === 'one_way') {
+        totalFare = oneWayFare + waitCost;
+        discountPercent = 0;
+      } else {
+        // HÀNH TRÌNH KHỨ HỒI
+        const doubleOneWay = oneWayFare * 2;
+
+        if (!discountEnabled) {
+          // TẮT giảm giá khứ hồi -> Tính gấp đôi 2x
+          totalFare = doubleOneWay + waitCost;
+          discountPercent = 0;
+        } else {
+          // BẬT giảm giá khứ hồi -> Tính theo bảng chiết khấu
+          const isLoyal = document.getElementById('loyal-customer-toggle').checked;
+
+          if (isLoyal) {
+            discountPercent = 25;
+          } else if (distance < 20) {
+            discountPercent = 10;
+          } else if (distance <= 50) {
+            discountPercent = 15;
+          } else {
+            discountPercent = 20;
+          }
+
+          const discountAmount = doubleOneWay * (discountPercent / 100);
+          totalFare = (doubleOneWay - discountAmount) + waitCost;
         }
+      }
 
-        function installPWA() {
-            if (pwaDeferredPrompt) {
-                pwaDeferredPrompt.prompt();
-                pwaDeferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        document.getElementById('btn-install-pwa').classList.add('hidden');
-                    }
-                    pwaDeferredPrompt = null;
-                });
-            } else {
-                alert("Ứng dụng web đã sẵn sàng cài đặt hoặc trình duyệt của bạn hỗ trợ 'Thêm vào màn hình chính' từ Menu trình duyệt.");
-            }
+      // Làm tròn thành tiền
+      computedFare = Math.round(totalFare);
+
+      // Render UI UI updates
+      document.getElementById('total-fare').innerText = formatVND(computedFare);
+      document.getElementById('discount-val').innerText = discountPercent > 0 ? `-${discountPercent}%` : `0%`;
+    }
+
+    // Format currency VND
+    function formatVND(amount) {
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    }
+
+    // Vehicle Select Event
+    function selectVehicle(type) {
+      selectedVehicle = type;
+      document.querySelectorAll('.vehicle-btn').forEach(btn => {
+        btn.classList.remove('border-brand-600', 'bg-brand-50');
+        btn.classList.add('border-gray-200');
+      });
+      const activeBtn = document.getElementById(`v-${type}`);
+      activeBtn.classList.add('border-brand-600', 'bg-brand-50');
+      activeBtn.classList.remove('border-gray-200');
+
+      calculateFare();
+    }
+
+    // Set Trip Type (1 chiều / Khứ hồi)
+    function setTripType(type) {
+      tripType = type;
+      const btnOne = document.getElementById('btn-one-way');
+      const btnRound = document.getElementById('btn-round-trip');
+      const roundContainer = document.getElementById('round-trip-discount-container');
+      const loyalContainer = document.getElementById('loyal-option-container');
+
+      if (type === 'one_way') {
+        btnOne.className = "px-3 py-1 rounded-md text-xs font-bold bg-white text-brand-700 shadow-sm transition";
+        btnRound.className = "px-3 py-1 rounded-md text-xs font-bold text-gray-600 hover:text-gray-900 transition";
+        roundContainer.classList.add('hidden');
+        loyalContainer.classList.add('hidden');
+      } else {
+        btnRound.className = "px-3 py-1 rounded-md text-xs font-bold bg-white text-brand-700 shadow-sm transition";
+        btnOne.className = "px-3 py-1 rounded-md text-xs font-bold text-gray-600 hover:text-gray-900 transition";
+        roundContainer.classList.remove('hidden');
+        loyalContainer.classList.remove('hidden');
+      }
+
+      calculateFare();
+    }
+
+    // Toggle Round Trip Discount
+    function toggleDiscount() {
+      discountEnabled = document.getElementById('discount-toggle').checked;
+      const statusText = document.getElementById('discount-status-text');
+
+      if (discountEnabled) {
+        statusText.innerText = "2x Khứ hồi giảm (Đã áp dụng giảm giá)";
+        statusText.className = "text-[11px] font-bold text-brand-700";
+      } else {
+        statusText.innerText = "2x Khứ hồi (Giá gấp đôi 1 chiều)";
+        statusText.className = "text-[11px] font-semibold text-amber-700";
+      }
+
+      calculateFare();
+    }
+
+    // --- INVOICE & BOOKING MODAL ACTIONS ---
+    function bookingAction() {
+      if (currentDistanceKm <= 0) {
+        alert("Vui lòng nhập điểm đi và điểm đến hợp lệ.");
+        return;
+      }
+
+      const p = PRICING_TABLE[selectedVehicle];
+      const waitHours = parseFloat(document.getElementById('wait-hours').value) || 0;
+      const waitCost = waitHours * p.wait_fee;
+      const startAddr = document.getElementById('start-address').value || "Vị trí hiện tại";
+      const endAddr = document.getElementById('end-address').value || "Điểm đến chọn trên bản đồ";
+
+      // Generate UNIQUE invoice code
+      const invCode = "PSM-" + Math.floor(100000 + Math.random() * 900000);
+      const invDate = new Date().toLocaleString('vi-VN');
+
+      document.getElementById('inv-code').innerText = invCode;
+      document.getElementById('inv-date').innerText = `Ngày: ${invDate}`;
+      document.getElementById('inv-vehicle').innerText = p.name;
+      document.getElementById('inv-type').innerText = tripType === 'one_way' ? "Hành trình 1 Chiều" : "Hành trình Khứ Hồi";
+      document.getElementById('inv-discount-mode').innerText = tripType === 'round_trip' 
+        ? (discountEnabled ? "2x Khứ hồi giảm" : "2x Khứ hồi") 
+        : "Không áp dụng";
+
+      document.getElementById('inv-distance').innerText = `${currentDistanceKm} km`;
+      document.getElementById('inv-duration').innerText = `${currentDurationMin} phút`;
+      document.getElementById('inv-wait').innerText = `${waitHours} giờ (${formatVND(waitCost)})`;
+
+      document.getElementById('inv-start-addr').innerText = startAddr;
+      document.getElementById('inv-end-addr').innerText = endAddr;
+
+      // Populate Table Breakdown
+      const tbody = document.getElementById('inv-breakdown-rows');
+      tbody.innerHTML = '';
+
+      // Base fare calculation breakdown row
+      let oneWayFare = 0;
+      if (currentDistanceKm <= 2) {
+        oneWayFare = p.flagfall;
+      } else if (currentDistanceKm <= 20) {
+        oneWayFare = p.flagfall + (currentDistanceKm - 2) * p.rate_3_20;
+      } else {
+        oneWayFare = p.flagfall + (18 * p.rate_3_20) + (currentDistanceKm - 20) * p.rate_21_plus;
+      }
+
+      let row1 = `
+        <tr>
+          <td class="p-2.5 font-medium">Cước di chuyển 1 chiều (${currentDistanceKm} km)</td>
+          <td class="p-2.5 text-center text-gray-500">Mở cửa 2km: ${formatVND(p.flagfall)}</td>
+          <td class="p-2.5 text-right font-bold">${formatVND(oneWayFare)}</td>
+        </tr>
+      `;
+      tbody.innerHTML += row1;
+
+      if (tripType === 'round_trip') {
+        let doubleWay = oneWayFare * 2;
+        tbody.innerHTML += `
+          <tr>
+            <td class="p-2.5 font-medium">Quy đổi Khứ hồi (x2)</td>
+            <td class="p-2.5 text-center text-gray-500">Gấp đôi cước 1 chiều</td>
+            <td class="p-2.5 text-right font-bold">${formatVND(doubleWay)}</td>
+          </tr>
+        `;
+
+        if (discountEnabled) {
+          const discountPercent = parseFloat(document.getElementById('discount-val').innerText.replace('-','').replace('%','')) || 0;
+          const discountAmt = doubleWay * (discountPercent / 100);
+          tbody.innerHTML += `
+            <tr class="text-brand-700 bg-brand-50/40">
+              <td class="p-2.5 font-bold">Chiết khấu Khứ Hồi Giảm Giá (-${discountPercent}%)</td>
+              <td class="p-2.5 text-center">Theo quy định ưu đãi</td>
+              <td class="p-2.5 text-right font-bold">-${formatVND(discountAmt)}</td>
+            </tr>
+          `;
         }
+      }
 
-        // --- 4. MAPS & LOCATION (LEAFLET + OPENSTREETMAP) ---
-        function initMap() {
-            map = L.map('map').setView([pickupCoords.lat, pickupCoords.lng], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+      if (waitHours > 0) {
+        tbody.innerHTML += `
+          <tr>
+            <td class="p-2.5 font-medium">Phụ phí thời gian chờ (${waitHours}h)</td>
+            <td class="p-2.5 text-center text-gray-500">${formatVND(p.wait_fee)}/giờ</td>
+            <td class="p-2.5 text-right font-bold">${formatVND(waitCost)}</td>
+          </tr>
+        `;
+      }
 
-            pickupMarker = L.marker([pickupCoords.lat, pickupCoords.lng], { draggable: true })
-                .addTo(map)
-                .bindPopup('Điểm đón của bạn');
+      document.getElementById('inv-final-total').innerText = formatVND(computedFare);
 
-            destMarker = L.marker([destCoords.lat, destCoords.lng], { draggable: true })
-                .addTo(map)
-                .bindPopup('Điểm đến');
+      // Generate Anti-fake QR code
+      const qrContainer = document.getElementById("qrcode");
+      qrContainer.innerHTML = "";
+      new QRCode(qrContainer, {
+        text: `PHUONGSM_VERIFIED_${invCode}_${computedFare}_VND`,
+        width: 54,
+        height: 54,
+      });
 
-            // Drag end events
-            pickupMarker.on('dragend', function (e) {
-                pickupCoords = e.target.getLatLng();
-                calculateRouteAndFare();
-            });
+      document.getElementById('anti-fake-hash').innerText = `HASH: ${invCode}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-            destMarker.on('dragend', function (e) {
-                destCoords = e.target.getLatLng();
-                calculateRouteAndFare();
-            });
+      // Auto save trip to history
+      saveTripToHistory({
+        code: invCode,
+        date: invDate,
+        vehicle: p.name,
+        distance: currentDistanceKm,
+        total: computedFare,
+        start: startAddr,
+        end: endAddr
+      });
 
-            drawRouteLine();
-        }
+      // Show Modal
+      document.getElementById('invoice-modal').classList.remove('hidden');
+    }
 
-        function getCurrentLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        pickupCoords = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-                        pickupMarker.setLatLng([pickupCoords.lat, pickupCoords.lng]);
-                        map.setView([pickupCoords.lat, pickupCoords.lng], 13);
-                        document.getElementById('pickup-location').value = "Vị trí GPS hiện tại";
-                        document.getElementById('map-status').innerText = "Đã lấy vị trí GPS";
-                        calculateRouteAndFare();
-                    },
-                    () => {
-                        document.getElementById('pickup-location').value = "Quận 1, TP. Hồ Chí Minh";
-                        calculateRouteAndFare();
-                    }
-                );
-            }
-        }
+    function closeInvoiceModal() {
+      document.getElementById('invoice-modal').classList.add('hidden');
+    }
 
-        function searchDestination() {
-            const destText = document.getElementById('destination-location').value.trim();
-            if (!destText) return;
-            
-            // Simple Geocoding mockup or offset for real interaction
-            destCoords = {
-                lat: pickupCoords.lat + (Math.random() * 0.08 - 0.04),
-                lng: pickupCoords.lng + (Math.random() * 0.08 - 0.04)
-            };
-            destMarker.setLatLng([destCoords.lat, destCoords.lng]);
-            calculateRouteAndFare();
-        }
+    // Toggle Invoice Fullscreen
+    function toggleInvoiceFullscreen() {
+      const container = document.getElementById('invoice-card-container');
+      const icon = document.getElementById('fs-icon');
+      const text = document.getElementById('fs-text');
 
-        function drawRouteLine() {
-            if (routePolyline) map.removeLayer(routePolyline);
-            routePolyline = L.polyline([
-                [pickupCoords.lat, pickupCoords.lng],
-                [destCoords.lat, destCoords.lng]
-            ], { color: '#059669', weight: 5, opacity: 0.8 }).addTo(map);
+      if (container.classList.contains('max-w-2xl')) {
+        container.classList.remove('max-w-2xl', 'max-h-[92vh]');
+        container.classList.add('max-w-full', 'h-screen', 'rounded-none');
+        text.innerText = "Thoát toàn màn hình";
+        lucide.createIcons();
+      } else {
+        container.classList.add('max-w-2xl', 'max-h-[92vh]');
+        container.classList.remove('max-w-full', 'h-screen', 'rounded-none');
+        text.innerText = "Toàn màn hình";
+        lucide.createIcons();
+      }
+    }
 
-            map.fitBounds(routePolyline.getBounds(), { padding: [30, 30] });
-        }
+    // EXPORT INVOICE FUNCTIONS (Print, PDF, PNG, CSV, DOCX)
+    function exportInvoice(type) {
+      const element = document.getElementById('printable-invoice');
 
-        function calculateRouteAndFare() {
-            drawRouteLine();
-            
-            // Calculate Haversine distance in KM
-            const R = 6371; // km
-            const dLat = (destCoords.lat - pickupCoords.lat) * Math.PI / 180;
-            const dLon = (destCoords.lng - pickupCoords.lng) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(pickupCoords.lat * Math.PI / 180) * Math.cos(destCoords.lat * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            
-            // Estimate realistic road distance
-            currentDistanceKm = parseFloat((R * c * 1.3).toFixed(1));
-            if (currentDistanceKm < 1) currentDistanceKm = 1.0;
-            
-            // Estimate duration (Average speed ~ 30 km/h)
-            currentDurationMin = Math.round((currentDistanceKm / 30) * 60) + 3;
+      if (type === 'print') {
+        window.print();
+      } 
+      else if (type === 'png') {
+        html2canvas(element, { scale: 2 }).then(canvas => {
+          const link = document.createElement('a');
+          link.download = `HoaDon_PhuongSM_${Date.now()}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+      } 
+      else if (type === 'pdf') {
+        const { jsPDF } = window.jspdf;
+        html2canvas(element, { scale: 2 }).then(canvas => {
+          const imgData = canvas.toDataURL('image/jpeg', 1.0);
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const imgWidth = 210;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+          pdf.save(`HoaDon_PhuongSM_${Date.now()}.pdf`);
+        });
+      }
+      else if (type === 'csv') {
+        const code = document.getElementById('inv-code').innerText;
+        const vehicle = document.getElementById('inv-vehicle').innerText;
+        const dist = document.getElementById('inv-distance').innerText;
+        const total = document.getElementById('inv-final-total').innerText;
 
-            document.getElementById('display-distance').innerText = `${currentDistanceKm} km`;
-            document.getElementById('display-duration').innerText = `${currentDurationMin} phút`;
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Ma Hoa Don,Loai Xe,Quang Duong,Tong Tien\n";
+        csvContent += `"${code}","${vehicle}","${dist}","${total}"\n`;
 
-            calculateFare();
-        }
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `HoaDon_${code}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      else if (type === 'doc') {
+        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
+             "xmlns:w='urn:schemas-microsoft-com:office:word' "+
+             "xmlns='http://www.w3.org/TR/REC-html40'>"+
+             "<head><meta charset='utf-8'><title>Hoa Don PhuongSM</title></head><body>";
+        const footer = "</body></html>";
+        const sourceHTML = header + element.innerHTML + footer;
+        
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+        const fileDownload = document.createElement("a");
+        document.body.appendChild(fileDownload);
+        fileDownload.href = source;
+        fileDownload.download = `HoaDon_PhuongSM.doc`;
+        fileDownload.click();
+        document.body.removeChild(fileDownload);
+      }
+    }
 
-        // --- 5. FARE CALCULATION ENGINE ---
-        function renderVehicleSelector() {
-            const container = document.getElementById('vehicle-selector');
-            container.innerHTML = VEHICLES.map(v => `
-                <div onclick="selectVehicle('${v.id}')" id="v-card-${v.id}" class="cursor-pointer border-2 ${v.id === selectedVehicle.id ? 'border-emerald-600 bg-emerald-50/50' : 'border-gray-200 bg-white'} rounded-xl p-3 text-center transition hover:border-emerald-400">
-                    <i class="fa-solid ${v.icon} text-2xl ${v.id === selectedVehicle.id ? 'text-emerald-600' : 'text-gray-500'} mb-1"></i>
-                    <p class="text-xs font-bold text-gray-800">${v.name}</p>
-                    <p class="text-[10px] text-gray-500 mt-0.5">Từ ${v.base.toLocaleString()}₫</p>
+    // --- TRIP HISTORY LOCAL STORAGE ---
+    function saveTripToHistory(trip) {
+      tripHistory.unshift(trip);
+      if (tripHistory.length > 30) tripHistory.pop(); // Keep last 30
+      localStorage.setItem('phuongsm_history', JSON.stringify(tripHistory));
+    }
+
+    function loadHistoryFromStorage() {
+      const saved = localStorage.getItem('phuongsm_history');
+      if (saved) {
+        try { tripHistory = JSON.parse(saved); } catch(e) { tripHistory = []; }
+      }
+    }
+
+    function toggleHistoryModal(show) {
+      const modal = document.getElementById('history-modal');
+      const container = document.getElementById('history-list-container');
+
+      if (show) {
+        container.innerHTML = '';
+        if (tripHistory.length === 0) {
+          container.innerHTML = `<div class="text-center text-gray-400 py-8 text-xs">Chưa có lịch sử chuyến đi nào được lưu.</div>`;
+        } else {
+          tripHistory.forEach(item => {
+            container.innerHTML += `
+              <div class="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-1 text-xs">
+                <div class="flex justify-between font-bold text-gray-800">
+                  <span class="text-brand-700">${item.code} - ${item.vehicle}</span>
+                  <span class="text-brand-800 font-black">${formatVND(item.total)}</span>
                 </div>
-            `).join('');
+                <div class="text-gray-500 text-[11px]">${item.date} • ${item.distance} km</div>
+                <div class="text-gray-600 truncate"><b>Từ:</b> ${item.start}</div>
+                <div class="text-gray-600 truncate"><b>Đến:</b> ${item.end}</div>
+              </div>
+            `;
+          });
         }
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
 
-        function selectVehicle(id) {
-            selectedVehicle = VEHICLES.find(v => v.id === id);
-            renderVehicleSelector();
-            calculateFare();
+    function clearHistory() {
+      if (confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử đặt xe?")) {
+        tripHistory = [];
+        localStorage.removeItem('phuongsm_history');
+        toggleHistoryModal(true);
+      }
+    }
+
+    // --- PWA INSTALLATION HANDLER ---
+    let deferredPrompt;
+    function setupPWAInstaller() {
+      const installBtn = document.getElementById('pwa-install-btn');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.classList.remove('hidden');
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            installBtn.classList.add('hidden');
+          }
+          deferredPrompt = null;
         }
-
-        function toggleDiscountState() {
-            const isDiscountOn = document.getElementById('roundtrip-discount').checked;
-            document.getElementById('discount-label').innerText = isDiscountOn ? "2x Khứ hồi giảm" : "2x Khứ hồi";
-            calculateFare();
-        }
-
-        function calculateFare() {
-            const tripType = document.getElementById('trip-type').value;
-            const discountContainer = document.getElementById('discount-toggle-container');
-            const isDiscountOn = document.getElementById('roundtrip-discount').checked;
-            const waitHours = parseFloat(document.getElementById('wait-hours').value) || 0;
-
-            if (tripType === 'round-trip') {
-                discountContainer.classList.remove('opacity-50', 'pointer-events-none');
-            } else {
-                discountContainer.classList.add('opacity-50', 'pointer-events-none');
-            }
-
-            let effectiveDistance = currentDistanceKm;
-            if (tripType === 'round-trip') {
-                effectiveDistance = currentDistanceKm * 2;
-            }
-
-            // Fare Rate Tiers Logic
-            let baseFare = 0;
-            if (effectiveDistance <= 2) {
-                baseFare = selectedVehicle.base;
-            } else if (effectiveDistance <= 20) {
-                baseFare = selectedVehicle.base + (effectiveDistance - 2) * selectedVehicle.rate3to20;
-            } else {
-                baseFare = selectedVehicle.base + (18 * selectedVehicle.rate3to20) + ((effectiveDistance - 20) * selectedVehicle.rate21);
-            }
-
-            // Round trip discount rules
-            let discountPercent = 0;
-            if (tripType === 'round-trip' && isDiscountOn) {
-                if (effectiveDistance < 20) discountPercent = 10;
-                else if (effectiveDistance <= 50) discountPercent = 15;
-                else discountPercent = 20; // Default for long route; VIP contract can be 25
-            }
-
-            let discountedFare = baseFare * (1 - discountPercent / 100);
-            let waitFee = waitHours * selectedVehicle.waitRate;
-            let totalFare = Math.round((discountedFare + waitFee) / 1000) * 1000; // Round to thousands
-
-            document.getElementById('display-total-fare').innerText = `${totalFare.toLocaleString('vi-VN')} ₫`;
-
-            return {
-                tripType,
-                effectiveDistance,
-                discountPercent,
-                waitFee,
-                totalFare
-            };
-        }
-
-        // --- 6. BOOKING CONFIRMATION & INVOICE GENERATION ---
-        function confirmBooking() {
-            const pickup = document.getElementById('pickup-location').value || "Vị trí đã chọn";
-            const dest = document.getElementById('destination-location').value || "Điểm đến đã chọn";
-            const fareData = calculateFare();
-
-            const code = 'PSM-' + Math.floor(1000 + Math.random() * 9000);
-            const dateStr = new Date().toLocaleString('vi-VN');
-
-            currentTripData = {
-                code,
-                dateStr,
-                vehicle: selectedVehicle.name,
-                tripType: fareData.tripType === 'round-trip' ? 'Khứ hồi' : '1 chiều',
-                pickup,
-                dest,
-                distance: fareData.effectiveDistance,
-                duration: currentDurationMin,
-                waitFee: fareData.waitFee,
-                discountPercent: fareData.discountPercent,
-                totalFare: fareData.totalFare,
-                url: window.location.href + '?inv=' + code
-            };
-
-            // Populate Invoice View
-            document.getElementById('inv-code').innerText = `Mã HĐ: #${code}`;
-            document.getElementById('inv-date').innerText = `Ngày: ${dateStr}`;
-            document.getElementById('inv-vehicle').innerText = currentTripData.vehicle;
-            document.getElementById('inv-triptype').innerText = currentTripData.tripType;
-            document.getElementById('inv-pickup').innerText = currentTripData.pickup;
-            document.getElementById('inv-dest').innerText = currentTripData.dest;
-            document.getElementById('inv-distance-time').innerText = `${currentTripData.distance} km | ~${currentTripData.duration} phút`;
-            document.getElementById('inv-waitfee').innerText = `${currentTripData.waitFee.toLocaleString()} ₫`;
-            document.getElementById('inv-total').innerText = `${currentTripData.totalFare.toLocaleString('vi-VN')} ₫`;
-
-            if (currentTripData.discountPercent > 0) {
-                document.getElementById('inv-discount-row').classList.remove('hidden');
-                document.getElementById('inv-discount-val').innerText = `-${currentTripData.discountPercent}%`;
-            } else {
-                document.getElementById('inv-discount-row').classList.add('hidden');
-            }
-
-            saveHistory(currentTripData);
-            sendNotification("Đặt xe PhuongSM thành công!", `Mã hóa đơn: #${code}. Cước phí: ${currentTripData.totalFare.toLocaleString()} ₫`);
-
-            // Open Invoice Modal
-            document.getElementById('invoice-modal').classList.remove('hidden');
-        }
-
-        function closeInvoiceModal() {
-            document.getElementById('invoice-modal').classList.add('hidden');
-        }
-
-        function toggleFullScreenInvoice() {
-            const modalContent = document.getElementById('invoice-container');
-            const icon = document.getElementById('btn-fullscreen-icon');
-            if (!document.fullscreenElement) {
-                modalContent.requestFullscreen().catch(err => console.log(err));
-                icon.className = 'fa-solid fa-compress text-lg';
-            } else {
-                document.exitFullscreen();
-                icon.className = 'fa-solid fa-expand text-lg';
-            }
-        }
-
-        // --- 7. QR CODE & AUTOMATIC FULL BRIGHTNESS ---
-        async function openQRModal() {
-            if (!currentTripData) return;
-            const qrContainer = document.getElementById('qrcode-box');
-            qrContainer.innerHTML = '';
-            
-            // Generate QR Code
-            new QRCode(qrContainer, {
-                text: currentTripData.url,
-                width: 200,
-                height: 200,
-                colorDark : "#059669",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-
-            document.getElementById('qr-link-url').innerText = currentTripData.url;
-            document.getElementById('qr-modal').classList.remove('hidden');
-
-            // Force Screen Wake Lock & Full Brightness Emulation
-            document.body.classList.add('full-brightness-overlay');
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) {
-                console.log("Wake lock error: ", err);
-            }
-        }
-
-        function closeQRModal() {
-            document.getElementById('qr-modal').classList.add('hidden');
-            document.body.classList.remove('full-brightness-overlay');
-            if (wakeLock !== null) {
-                wakeLock.release().then(() => { wakeLock = null; });
-            }
-        }
-
-        // --- 8. REAL SHARING & EXPORT UTILITIES ---
-        function shareTrip() {
-            if (!currentTripData) return;
-            const text = `Chuyến đi PhuongSM: ${currentTripData.pickup} -> ${currentTripData.dest}. Tổng cước: ${currentTripData.totalFare.toLocaleString()}₫.`;
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Hóa Đơn Chuyến Đi PhuongSM',
-                    text: text,
-                    url: currentTripData.url
-                }).catch(() => {});
-            } else {
-                navigator.clipboard.writeText(`${text} Link: ${currentTripData.url}`);
-                alert("Đã sao chép liên kết chuyến đi vào bộ nhớ tạm!");
-            }
-        }
-
-        function downloadInvoiceImage() {
-            const invoiceElement = document.getElementById('printable-invoice');
-            html2canvas(invoiceElement).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `HoaDon_PhuongSM_${currentTripData.code}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
-        }
-
-        function printQuickInvoice() {
-            window.print();
-        }
-
-        function exportPDF() {
-            alert("Chức năng đang mở hộp thoại In để lưu dưới dạng file PDF chuẩn.");
-            window.print();
-        }
-
-        function exportDocx() {
-            const content = `HÓA ĐƠN ĐẶT XE PHUONGSM\nMã HĐ: #${currentTripData.code}\nNgày: ${currentTripData.dateStr}\nLoại xe: ${currentTripData.vehicle}\nĐiểm đón: ${currentTripData.pickup}\nĐiểm đến: ${currentTripData.dest}\nQuãng đường: ${currentTripData.distance} km\nTổng tiền: ${currentTripData.totalFare.toLocaleString()} VNĐ`;
-            const blob = new Blob([content], { type: 'application/msword' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `HoaDon_${currentTripData.code}.doc`;
-            link.click();
-        }
-
-        function exportSheetCSV() {
-            const csvRows = [
-                ["Ma Hoa Don", "Ngay", "Loai Xe", "Diem Don", "Diem Den", "Quang Duong(KM)", "Tong Tien(VND)"],
-                [currentTripData.code, currentTripData.dateStr, currentTripData.vehicle, `"${currentTripData.pickup}"`, `"${currentTripData.dest}"`, currentTripData.distance, currentTripData.totalFare]
-            ];
-            const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.map(e => e.join(",")).join("\n");
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `TrangTinh_PhuongSM_${currentTripData.code}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // --- 9. NOTIFICATION & LOCALSTORAGE HISTORY ---
-        function toggleNotifications() {
-            if (!("Notification" in window)) {
-                alert("Trình duyệt này không hỗ trợ thông báo.");
-                return;
-            }
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    document.getElementById('icon-notify').className = "fa-solid fa-bell text-yellow-300";
-                    alert("Đã bật thông báo thiết bị thành công!");
-                } else {
-                    alert("Bạn chưa cấp quyền thông báo.");
-                }
-            });
-        }
-
-        function sendNotification(title, body) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3202/3202926.png' });
-            }
-        }
-
-        function saveHistory(trip) {
-            let history = JSON.parse(localStorage.getItem('phuongsm_history') || '[]');
-            history.unshift(trip);
-            if (history.length > 10) history.pop();
-            localStorage.setItem('phuongsm_history', JSON.stringify(history));
-            loadHistory();
-        }
-
-        function loadHistory() {
-            let history = JSON.parse(localStorage.getItem('phuongsm_history') || '[]');
-            const listEl = document.getElementById('history-list');
-            if (history.length === 0) {
-                listEl.innerHTML = '<p class="text-xs text-gray-400 italic">Chưa có lịch sử chuyến đi nào được lưu.</p>';
-                return;
-            }
-            listEl.innerHTML = history.map(item => `
-                <div class="p-2.5 bg-gray-50 border border-gray-100 rounded-xl flex justify-between items-center text-xs">
-                    <div>
-                        <p class="font-bold text-gray-800">#${item.code} - ${item.vehicle}</p>
-                        <p class="text-[10px] text-gray-500">${item.pickup} → ${item.dest}</p>
-                        <p class="text-[9px] text-gray-400">${item.dateStr}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-black text-emerald-600 text-sm">${item.totalFare.toLocaleString()} ₫</p>
-                        <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">${item.distance} km</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function clearHistory() {
-            localStorage.removeItem('phuongsm_history');
-            loadHistory();
-        }
-    </script>
+      });
+    }
+  </script>
 </body>
 </html>
